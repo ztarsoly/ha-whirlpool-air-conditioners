@@ -1,0 +1,81 @@
+{
+  "common": {
+    "account_locked_error": "A fiók zárolva van. A feloldáshoz kövesse a gyártó alkalmazásában található utasításokat"
+  },
+  "config": {
+    "abort": {
+      "already_configured": "A fiók már be van állítva",
+      "reauth_successful": "Az újrahitelesítés sikeres volt"
+    },
+    "error": {
+      "account_locked": "A fiók zárolva van. A feloldáshoz kövesse a gyártó alkalmazásában található utasításokat",
+      "cannot_connect": "Nem sikerült csatlakozni",
+      "invalid_auth": "Érvénytelen hitelesítés",
+      "no_appliances": "Nem található támogatott készülék",
+      "unknown": "Váratlan hiba történt"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "brand": "Márka",
+          "password": "Jelszó",
+          "region": "Régió"
+        },
+        "data_description": {
+          "brand": "A használt mobilalkalmazás márkája, vagy a fiókjában lévő készülékek márkája",
+          "password": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt jelszó",
+          "region": "A régió, ahol a készülékeket vásárolta"
+        },
+        "title": "Integráció újrahitelesítése"
+      },
+      "user": {
+        "data": {
+          "brand": "Márka",
+          "password": "Jelszó",
+          "region": "Régió",
+          "username": "Felhasználónév"
+        },
+        "data_description": {
+          "brand": "A használt mobilalkalmazás márkája, vagy a fiókjában lévő készülékek márkája",
+          "password": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt jelszó",
+          "region": "A régió, ahol a készülékeket vásárolta",
+          "username": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt felhasználónév vagy e-mail-cím"
+        },
+        "title": "Whirlpool-fiók beállítása"
+      }
+    }
+  },
+  "entity": {
+    "switch": {
+      "display": {
+        "name": "Kijelző"
+      },
+      "jet": {
+        "name": "Jet"
+      },
+      "power_save": {
+        "name": "Energiatakarékos mód"
+      },
+      "super_silent": {
+        "name": "Szuper csendes mód"
+      }
+    }
+  },
+  "exceptions": {
+    "account_locked": {
+      "message": "A fiók zárolva van. A feloldáshoz kövesse a gyártó alkalmazásában található utasításokat"
+    },
+    "appliances_fetch_failed": {
+      "message": "Nem sikerült lekérni a készülékeket"
+    },
+    "cannot_connect": {
+      "message": "Nem sikerült csatlakozni"
+    },
+    "invalid_auth": {
+      "message": "Érvénytelen hitelesítés"
+    },
+    "request_failed": {
+      "message": "A kérés sikertelen volt"
+    }
+  }
+}
