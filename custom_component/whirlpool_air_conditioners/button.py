@@ -1,4 +1,4 @@
-"""Button platform for the Whirlpool Air Conditioner integration."""
+"""Button platform for the Whirlpool Air Conditioners integration."""
 
 from typing import override
 

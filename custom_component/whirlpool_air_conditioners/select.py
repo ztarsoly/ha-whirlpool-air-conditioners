@@ -1,4 +1,4 @@
-"""Select platform for the Whirlpool Air Conditioner integration."""
+"""Select platform for the Whirlpool Air Conditioners integration."""
 
 from typing import Final, override
 
