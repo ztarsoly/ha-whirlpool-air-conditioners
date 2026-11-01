@@ -57,7 +57,7 @@ async def authenticate(
         return "account_locked"
     except TimeoutError, ClientError:
         return "cannot_connect"
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         _LOGGER.exception("Unexpected exception")
         return "unknown"
 

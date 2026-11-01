@@ -62,7 +62,9 @@ class WhirlpoolSleepModeSelect(WhirlpoolEntity, SelectEntity):
     def current_option(self) -> str | None:
         """Return the current sleep mode."""
         # The library defines the sleep mode setting but has no getter for it.
-        return SLEEP_MODES.get(self._appliance._get_attribute(SETTING_SLEEP_MODE))  # noqa: SLF001
+        # pylint: disable-next=protected-access
+        raw_value = self._appliance._get_attribute(SETTING_SLEEP_MODE)  # noqa: SLF001
+        return SLEEP_MODES.get(raw_value)
 
     @override
     async def async_select_option(self, option: str) -> None:
