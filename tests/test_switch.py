@@ -1,56 +1,67 @@
 """Tests for the switch platform."""
 
-from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import pytest
 
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    SERVICE_TURN_OFF,
-    SERVICE_TURN_ON,
-    STATE_OFF,
-    STATE_ON,
-)
-from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
-from .conftest import fire_update
+from custom_components.whirlpool_air_conditioners import switch
+from custom_components.whirlpool_air_conditioners.switch import (
+    WhirlpoolDisplaySwitch,
+    WhirlpoolJetSwitch,
+    WhirlpoolPowerSaveSwitch,
+    WhirlpoolSuperSilentSwitch,
+)
+
+from .conftest import MOCK_SAID, setup_platform
 
 SWITCHES = [
-    ("switch.living_room_display", "get_display_on", "set_display_on"),
-    ("switch.living_room_jet", "get_turbo_mode", "set_turbo_mode"),
-    ("switch.living_room_power_save", "get_eco_mode", "set_eco_mode"),
-    ("switch.living_room_super_silent", "get_quiet_mode", "set_quiet_mode"),
+    (WhirlpoolDisplaySwitch, "display", "get_display_on", "set_display_on"),
+    (WhirlpoolJetSwitch, "jet", "get_turbo_mode", "set_turbo_mode"),
+    (WhirlpoolPowerSaveSwitch, "power_save", "get_eco_mode", "set_eco_mode"),
+    (WhirlpoolSuperSilentSwitch, "super_silent", "get_quiet_mode", "set_quiet_mode"),
 ]
 
 
-@pytest.mark.parametrize(("entity_id", "getter", "setter"), SWITCHES)
+async def test_setup_entry(mock_aircon: MagicMock) -> None:
+    """Test the four switches are added for each air conditioner."""
+    entities = await setup_platform(switch, [mock_aircon])
+
+    assert sorted(type(entity).__name__ for entity in entities) == sorted(
+        cls.__name__ for cls, *_ in SWITCHES
+    )
+
+
+@pytest.mark.parametrize(("cls", "key", "getter", "setter"), SWITCHES)
 async def test_switch(
-    hass: HomeAssistant,
-    setup_integration: Callable,
-    mock_aircon: MagicMock,
-    entity_id: str,
-    getter: str,
-    setter: str,
+    mock_aircon: MagicMock, cls: type, key: str, getter: str, setter: str
 ) -> None:
     """Test each switch shows and changes its setting."""
+    entity = cls(mock_aircon)
+    assert entity.unique_id == f"{MOCK_SAID}-{key}"
+    assert entity.translation_key == key
+
     getattr(mock_aircon, getter).return_value = False
-    await setup_integration()
-    assert hass.states.get(entity_id).state == STATE_OFF
-
+    assert entity.is_on is False
     getattr(mock_aircon, getter).return_value = True
-    fire_update(mock_aircon)
-    await hass.async_block_till_done()
-    assert hass.states.get(entity_id).state == STATE_ON
+    assert entity.is_on is True
 
-    await hass.services.async_call(
-        SWITCH_DOMAIN, SERVICE_TURN_OFF, {ATTR_ENTITY_ID: entity_id}, blocking=True
-    )
+    await entity.async_turn_off()
     getattr(mock_aircon, setter).assert_awaited_once_with(False)
 
     getattr(mock_aircon, setter).reset_mock()
-    await hass.services.async_call(
-        SWITCH_DOMAIN, SERVICE_TURN_ON, {ATTR_ENTITY_ID: entity_id}, blocking=True
-    )
+    await entity.async_turn_on()
     getattr(mock_aircon, setter).assert_awaited_once_with(True)
+
+
+@pytest.mark.parametrize(("cls", "key", "getter", "setter"), SWITCHES)
+@pytest.mark.parametrize("method", ["async_turn_on", "async_turn_off"])
+async def test_request_failed(
+    mock_aircon: MagicMock, cls: type, key: str, getter: str, setter: str, method: str
+) -> None:
+    """Test a rejected command raises an error for the user."""
+    getattr(mock_aircon, setter).return_value = False
+
+    with pytest.raises(HomeAssistantError):
+        await getattr(cls(mock_aircon), method)()

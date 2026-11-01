@@ -1,21 +1,31 @@
 """Tests for the select platform."""
 
-from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import pytest
-from whirlpool.aircon import SETTING_SLEEP_MODE
+from whirlpool.aircon import SETTING_SLEEP_MODE, Aircon
 
-from homeassistant.components.select import (
-    ATTR_OPTION,
-    ATTR_OPTIONS,
-    DOMAIN as SELECT_DOMAIN,
-    SERVICE_SELECT_OPTION,
+from homeassistant.exceptions import HomeAssistantError
+
+from custom_components.whirlpool_air_conditioners import select
+from custom_components.whirlpool_air_conditioners.select import (
+    WhirlpoolSleepModeSelect,
 )
-from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant
 
-ENTITY_ID = "select.living_room_sleep_mode"
+from .conftest import MOCK_SAID, setup_platform
+
+
+async def test_setup_entry(mock_aircon: MagicMock) -> None:
+    """Test the sleep mode select is only added for units that support it."""
+    unsupported = MagicMock(spec=Aircon)
+    unsupported.has_attribute.side_effect = lambda attr: attr != SETTING_SLEEP_MODE
+
+    entities = await setup_platform(select, [mock_aircon, unsupported])
+
+    assert len(entities) == 1
+    assert entities[0].unique_id == f"{MOCK_SAID}-sleep_mode"
+    assert entities[0].translation_key == "sleep_mode"
+    assert entities[0].options == ["off", "adults", "elderly", "teens", "children"]
 
 
 @pytest.mark.parametrize(
@@ -26,53 +36,38 @@ ENTITY_ID = "select.living_room_sleep_mode"
         ("2", "elderly"),
         ("3", "teens"),
         ("4", "children"),
-        ("9", STATE_UNKNOWN),
+        ("9", None),
+        (None, None),
     ],
 )
-async def test_state(
-    hass: HomeAssistant,
-    setup_integration: Callable,
-    mock_aircon: MagicMock,
-    raw_value: str,
-    expected: str,
+def test_current_option(
+    mock_aircon: MagicMock, raw_value: str | None, expected: str | None
 ) -> None:
     """Test the sleep mode is read from the appliance setting."""
     # pylint: disable-next=protected-access
     mock_aircon._get_attribute.side_effect = {SETTING_SLEEP_MODE: raw_value}.get
-    await setup_integration()
 
-    state = hass.states.get(ENTITY_ID)
-    assert state.state == expected
-    assert state.attributes[ATTR_OPTIONS] == [
-        "off",
-        "adults",
-        "elderly",
-        "teens",
-        "children",
-    ]
+    assert WhirlpoolSleepModeSelect(mock_aircon).current_option == expected
 
 
+@pytest.mark.parametrize(
+    ("option", "raw_value"),
+    [("off", "0"), ("adults", "1"), ("elderly", "2"), ("teens", "3"), ("children", "4")],
+)
 async def test_select_option(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
+    mock_aircon: MagicMock, option: str, raw_value: str
 ) -> None:
     """Test choosing a sleep mode sends its setting value."""
-    await setup_integration()
+    await WhirlpoolSleepModeSelect(mock_aircon).async_select_option(option)
 
-    await hass.services.async_call(
-        SELECT_DOMAIN,
-        SERVICE_SELECT_OPTION,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_OPTION: "children"},
-        blocking=True,
+    mock_aircon.send_attributes.assert_awaited_once_with(
+        {SETTING_SLEEP_MODE: raw_value}
     )
 
-    mock_aircon.send_attributes.assert_awaited_once_with({SETTING_SLEEP_MODE: "4"})
 
+async def test_select_option_failed(mock_aircon: MagicMock) -> None:
+    """Test a rejected command raises an error for the user."""
+    mock_aircon.send_attributes.return_value = False
 
-async def test_not_created_when_unsupported(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
-) -> None:
-    """Test no sleep mode entity for units without that setting."""
-    mock_aircon.has_attribute.side_effect = lambda attr: attr != SETTING_SLEEP_MODE
-    await setup_integration()
-
-    assert hass.states.get(ENTITY_ID) is None
+    with pytest.raises(HomeAssistantError):
+        await WhirlpoolSleepModeSelect(mock_aircon).async_select_option("adults")

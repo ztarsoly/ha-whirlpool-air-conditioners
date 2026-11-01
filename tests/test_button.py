@@ -1,40 +1,47 @@
 """Tests for the button platform."""
 
-from collections.abc import Callable
 from unittest.mock import MagicMock
 
-from whirlpool.aircon import SETTING_REBOOT_WIFI
+import pytest
+from whirlpool.aircon import SETTING_REBOOT_WIFI, Aircon
 
-from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN, SERVICE_PRESS
-from homeassistant.const import ATTR_ENTITY_ID, EntityCategory
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.components.button import ButtonDeviceClass
+from homeassistant.const import EntityCategory
+from homeassistant.exceptions import HomeAssistantError
 
-ENTITY_ID = "button.living_room_restart_wi_fi_module"
+from custom_components.whirlpool_air_conditioners import button
+from custom_components.whirlpool_air_conditioners.button import (
+    WhirlpoolWifiRebootButton,
+)
+
+from .conftest import MOCK_SAID, setup_platform
 
 
-async def test_press(
-    hass: HomeAssistant,
-    entity_registry: er.EntityRegistry,
-    setup_integration: Callable,
-    mock_aircon: MagicMock,
-) -> None:
+async def test_setup_entry(mock_aircon: MagicMock) -> None:
+    """Test the reboot button is only added for units that support it."""
+    unsupported = MagicMock(spec=Aircon)
+    unsupported.has_attribute.side_effect = lambda attr: attr != SETTING_REBOOT_WIFI
+
+    entities = await setup_platform(button, [mock_aircon, unsupported])
+
+    assert len(entities) == 1
+    entity = entities[0]
+    assert entity.unique_id == f"{MOCK_SAID}-wifi_reboot"
+    assert entity.translation_key == "wifi_reboot"
+    assert entity.device_class is ButtonDeviceClass.RESTART
+    assert entity.entity_category is EntityCategory.CONFIG
+
+
+async def test_press(mock_aircon: MagicMock) -> None:
     """Test pressing the button sends the Wi-Fi reboot command."""
-    await setup_integration()
-    assert entity_registry.async_get(ENTITY_ID).entity_category is EntityCategory.CONFIG
-
-    await hass.services.async_call(
-        BUTTON_DOMAIN, SERVICE_PRESS, {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True
-    )
+    await WhirlpoolWifiRebootButton(mock_aircon).async_press()
 
     mock_aircon.send_attributes.assert_awaited_once_with({SETTING_REBOOT_WIFI: "1"})
 
 
-async def test_not_created_when_unsupported(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
-) -> None:
-    """Test no reboot button for units without that setting."""
-    mock_aircon.has_attribute.side_effect = lambda attr: attr != SETTING_REBOOT_WIFI
-    await setup_integration()
+async def test_press_failed(mock_aircon: MagicMock) -> None:
+    """Test a rejected command raises an error for the user."""
+    mock_aircon.send_attributes.return_value = False
 
-    assert hass.states.get(ENTITY_ID) is None
+    with pytest.raises(HomeAssistantError):
+        await WhirlpoolWifiRebootButton(mock_aircon).async_press()

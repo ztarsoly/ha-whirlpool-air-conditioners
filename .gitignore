@@ -17,3 +17,7 @@ desktop.ini
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Test coverage
+.coverage
+htmlcov/

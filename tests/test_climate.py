@@ -1,93 +1,85 @@
 """Tests for the climate platform."""
 
-from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import pytest
-from whirlpool.aircon import SETTING_HUMIDITY, FanSpeed, Mode
+from whirlpool.aircon import SETTING_HUMIDITY, Aircon, FanSpeed, Mode
 
 from homeassistant.components.climate import (
-    ATTR_CURRENT_HUMIDITY,
-    ATTR_CURRENT_TEMPERATURE,
-    ATTR_FAN_MODE,
-    ATTR_FAN_MODES,
-    ATTR_HUMIDITY,
-    ATTR_HVAC_MODE,
-    ATTR_HVAC_MODES,
-    ATTR_MAX_TEMP,
-    ATTR_MIN_TEMP,
-    ATTR_SWING_MODE,
-    DOMAIN as CLIMATE_DOMAIN,
     FAN_AUTO,
     FAN_HIGH,
-    SERVICE_SET_FAN_MODE,
-    SERVICE_SET_HUMIDITY,
-    SERVICE_SET_HVAC_MODE,
-    SERVICE_SET_SWING_MODE,
-    SERVICE_SET_TEMPERATURE,
+    FAN_LOW,
+    FAN_MEDIUM,
+    FAN_OFF,
     SWING_HORIZONTAL,
     SWING_OFF,
     ClimateEntityFeature,
     HVACMode,
 )
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    ATTR_SUPPORTED_FEATURES,
-    ATTR_TEMPERATURE,
-    SERVICE_TURN_OFF,
-    SERVICE_TURN_ON,
-    STATE_UNAVAILABLE,
-)
-from homeassistant.core import HomeAssistant
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.exceptions import HomeAssistantError
 
-from .conftest import fire_update
+from custom_components.whirlpool_air_conditioners import climate
+from custom_components.whirlpool_air_conditioners.climate import AirConEntity
 
-ENTITY_ID = "climate.living_room"
+from .conftest import MOCK_SAID, setup_platform
 
 
-async def test_state(hass: HomeAssistant, setup_integration: Callable) -> None:
-    """Test the climate entity reflects the air conditioner."""
-    await setup_integration()
+async def test_setup_entry(mock_aircon: MagicMock) -> None:
+    """Test one climate entity is added per air conditioner."""
+    other_aircon = MagicMock(spec=Aircon)
+    other_aircon.said = "OTHER_SAID"
+    other_aircon.name = "bedroom"
+    other_aircon.appliance_info = MagicMock()
 
-    state = hass.states.get(ENTITY_ID)
-    assert state is not None
-    assert state.state == HVACMode.COOL
-    assert state.attributes[ATTR_CURRENT_TEMPERATURE] == 24.5
-    assert state.attributes[ATTR_TEMPERATURE] == 22.0
-    assert state.attributes[ATTR_CURRENT_HUMIDITY] == 45
-    assert state.attributes[ATTR_HUMIDITY] == 50
-    assert state.attributes[ATTR_FAN_MODE] == FAN_AUTO
-    assert state.attributes[ATTR_SWING_MODE] == SWING_OFF
-    assert state.attributes[ATTR_MIN_TEMP] == 16
-    assert state.attributes[ATTR_MAX_TEMP] == 30
-    assert state.attributes[ATTR_HVAC_MODES] == [
+    entities = await setup_platform(climate, [mock_aircon, other_aircon])
+
+    assert [type(entity) for entity in entities] == [AirConEntity, AirConEntity]
+    assert [entity.unique_id for entity in entities] == [MOCK_SAID, "OTHER_SAID"]
+
+
+def test_attributes(mock_aircon: MagicMock) -> None:
+    """Test the entity reflects the air conditioner."""
+    entity = AirConEntity(mock_aircon)
+
+    assert entity.name is None
+    assert entity.current_temperature == 24.5
+    assert entity.target_temperature == 22.0
+    assert entity.current_humidity == 45
+    assert entity.target_humidity == 50
+    assert entity.fan_mode == FAN_AUTO
+    assert entity.swing_mode == SWING_OFF
+    assert entity.min_temp == 16
+    assert entity.max_temp == 30
+    assert entity.target_temperature_step == 1
+    assert entity.temperature_unit == UnitOfTemperature.CELSIUS
+    assert entity.hvac_modes == [
         HVACMode.OFF,
         HVACMode.COOL,
         HVACMode.HEAT,
         HVACMode.FAN_ONLY,
         HVACMode.AUTO,
     ]
-    assert state.attributes[ATTR_FAN_MODES] == ["off", "auto", "low", "medium", "high"]
-    assert (
-        state.attributes[ATTR_SUPPORTED_FEATURES]
-        & ClimateEntityFeature.TARGET_HUMIDITY
-    )
+    assert entity.fan_modes == [FAN_OFF, FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH]
+    assert entity.swing_modes == [SWING_HORIZONTAL, SWING_OFF]
 
 
-async def test_no_target_humidity(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
-) -> None:
-    """Test target humidity is left out for units without that setting."""
+def test_supported_features(mock_aircon: MagicMock) -> None:
+    """Test target humidity is only offered when the unit reports it."""
+    with_humidity = AirConEntity(mock_aircon).supported_features
     mock_aircon.has_attribute.side_effect = lambda attr: attr != SETTING_HUMIDITY
-    await setup_integration()
+    without_humidity = AirConEntity(mock_aircon).supported_features
 
-    state = hass.states.get(ENTITY_ID)
-    assert not (
-        state.attributes[ATTR_SUPPORTED_FEATURES]
-        & ClimateEntityFeature.TARGET_HUMIDITY
-    )
-    assert ATTR_HUMIDITY not in state.attributes
+    for feature in (
+        ClimateEntityFeature.TARGET_TEMPERATURE,
+        ClimateEntityFeature.FAN_MODE,
+        ClimateEntityFeature.SWING_MODE,
+        ClimateEntityFeature.TURN_ON,
+        ClimateEntityFeature.TURN_OFF,
+    ):
+        assert feature in without_humidity
+    assert ClimateEntityFeature.TARGET_HUMIDITY not in without_humidity
+    assert with_humidity == without_humidity | ClimateEntityFeature.TARGET_HUMIDITY
 
 
 @pytest.mark.parametrize(
@@ -98,95 +90,71 @@ async def test_no_target_humidity(
         (True, False, Mode.Cool, HVACMode.COOL),
         (True, False, Mode.Heat, HVACMode.HEAT),
         (True, False, Mode.Fan, HVACMode.FAN_ONLY),
+        (True, False, None, None),
         # In 6th Sense the unit reports the step it picked, but the user chose auto.
         (True, True, Mode.Cool, HVACMode.AUTO),
         (True, True, Mode.Heat, HVACMode.AUTO),
     ],
 )
-async def test_hvac_mode_state(
-    hass: HomeAssistant,
-    setup_integration: Callable,
+def test_hvac_mode(
     mock_aircon: MagicMock,
     power_on: bool,
     sixth_sense: bool,
-    mode: Mode,
-    expected: HVACMode,
+    mode: Mode | None,
+    expected: HVACMode | None,
 ) -> None:
     """Test the HVAC mode shown for each appliance state."""
     mock_aircon.get_power_on.return_value = power_on
     mock_aircon.get_sixthsense_mode.return_value = sixth_sense
     mock_aircon.get_mode.return_value = mode
-    await setup_integration()
 
-    assert hass.states.get(ENTITY_ID).state == expected
+    assert AirConEntity(mock_aircon).hvac_mode == expected
 
 
-async def test_push_updates(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
+@pytest.mark.parametrize(
+    ("fanspeed", "expected"),
+    [
+        (FanSpeed.Off, FAN_OFF),
+        (FanSpeed.Auto, FAN_AUTO),
+        (FanSpeed.Low, FAN_LOW),
+        (FanSpeed.Medium, FAN_MEDIUM),
+        (FanSpeed.High, FAN_HIGH),
+        (None, FAN_OFF),
+    ],
+)
+def test_fan_mode(
+    mock_aircon: MagicMock, fanspeed: FanSpeed | None, expected: str
 ) -> None:
-    """Test pushed updates change the state and availability."""
-    await setup_integration()
+    """Test each fan speed is shown, with unknown speeds shown as off."""
+    mock_aircon.get_fanspeed.return_value = fanspeed
 
-    mock_aircon.get_temp.return_value = 19.0
-    fire_update(mock_aircon)
-    await hass.async_block_till_done()
-    assert hass.states.get(ENTITY_ID).attributes[ATTR_TEMPERATURE] == 19.0
-
-    mock_aircon.get_online.return_value = False
-    fire_update(mock_aircon)
-    await hass.async_block_till_done()
-    assert hass.states.get(ENTITY_ID).state == STATE_UNAVAILABLE
-
-    mock_aircon.get_online.return_value = True
-    fire_update(mock_aircon)
-    await hass.async_block_till_done()
-    assert hass.states.get(ENTITY_ID).state == HVACMode.COOL
+    assert AirConEntity(mock_aircon).fan_mode == expected
 
 
-async def test_set_temperature(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
-) -> None:
+def test_swing_mode_on(mock_aircon: MagicMock) -> None:
+    """Test horizontal swing is shown when the louver swings."""
+    mock_aircon.get_h_louver_swing.return_value = True
+
+    assert AirConEntity(mock_aircon).swing_mode == SWING_HORIZONTAL
+
+
+async def test_set_temperature(mock_aircon: MagicMock) -> None:
     """Test setting the target temperature."""
-    await setup_integration()
-
-    await hass.services.async_call(
-        CLIMATE_DOMAIN,
-        SERVICE_SET_TEMPERATURE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_TEMPERATURE: 25},
-        blocking=True,
-    )
+    await AirConEntity(mock_aircon).async_set_temperature(**{ATTR_TEMPERATURE: 25})
 
     mock_aircon.set_temp.assert_awaited_once_with(25)
 
 
-async def test_set_humidity(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
-) -> None:
+async def test_set_humidity(mock_aircon: MagicMock) -> None:
     """Test setting the target humidity."""
-    await setup_integration()
-
-    await hass.services.async_call(
-        CLIMATE_DOMAIN,
-        SERVICE_SET_HUMIDITY,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_HUMIDITY: 55},
-        blocking=True,
-    )
+    await AirConEntity(mock_aircon).async_set_humidity(55)
 
     mock_aircon.set_humidity.assert_awaited_once_with(55)
 
 
-async def test_set_hvac_mode_off(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
-) -> None:
+async def test_set_hvac_mode_off(mock_aircon: MagicMock) -> None:
     """Test turning the unit off through the HVAC mode."""
-    await setup_integration()
-
-    await hass.services.async_call(
-        CLIMATE_DOMAIN,
-        SERVICE_SET_HVAC_MODE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_HVAC_MODE: HVACMode.OFF},
-        blocking=True,
-    )
+    await AirConEntity(mock_aircon).async_set_hvac_mode(HVACMode.OFF)
 
     mock_aircon.set_power_on.assert_awaited_once_with(False)
     mock_aircon.set_mode.assert_not_awaited()
@@ -203,8 +171,6 @@ async def test_set_hvac_mode_off(
 )
 @pytest.mark.parametrize("power_on", [True, False])
 async def test_set_hvac_mode(
-    hass: HomeAssistant,
-    setup_integration: Callable,
     mock_aircon: MagicMock,
     hvac_mode: HVACMode,
     expected_mode: Mode,
@@ -212,14 +178,8 @@ async def test_set_hvac_mode(
 ) -> None:
     """Test each HVAC mode is sent, and an off unit is turned on."""
     mock_aircon.get_power_on.return_value = power_on
-    await setup_integration()
 
-    await hass.services.async_call(
-        CLIMATE_DOMAIN,
-        SERVICE_SET_HVAC_MODE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_HVAC_MODE: hvac_mode},
-        blocking=True,
-    )
+    await AirConEntity(mock_aircon).async_set_hvac_mode(hvac_mode)
 
     mock_aircon.set_mode.assert_awaited_once_with(expected_mode)
     if power_on:
@@ -228,76 +188,77 @@ async def test_set_hvac_mode(
         mock_aircon.set_power_on.assert_awaited_once_with(True)
 
 
+@pytest.mark.parametrize(
+    ("fan_mode", "expected"),
+    [
+        (FAN_OFF, FanSpeed.Off),
+        (FAN_AUTO, FanSpeed.Auto),
+        (FAN_LOW, FanSpeed.Low),
+        (FAN_MEDIUM, FanSpeed.Medium),
+        (FAN_HIGH, FanSpeed.High),
+    ],
+)
 async def test_set_fan_mode(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
+    mock_aircon: MagicMock, fan_mode: str, expected: FanSpeed
 ) -> None:
-    """Test setting the fan speed."""
-    await setup_integration()
+    """Test setting each fan speed."""
+    await AirConEntity(mock_aircon).async_set_fan_mode(fan_mode)
 
-    await hass.services.async_call(
-        CLIMATE_DOMAIN,
-        SERVICE_SET_FAN_MODE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_FAN_MODE: FAN_HIGH},
-        blocking=True,
-    )
-
-    mock_aircon.set_fanspeed.assert_awaited_once_with(FanSpeed.High)
+    mock_aircon.set_fanspeed.assert_awaited_once_with(expected)
 
 
 @pytest.mark.parametrize(
     ("swing_mode", "expected"), [(SWING_HORIZONTAL, True), (SWING_OFF, False)]
 )
 async def test_set_swing_mode(
-    hass: HomeAssistant,
-    setup_integration: Callable,
-    mock_aircon: MagicMock,
-    swing_mode: str,
-    expected: bool,
+    mock_aircon: MagicMock, swing_mode: str, expected: bool
 ) -> None:
     """Test turning the horizontal louver swing on and off."""
-    await setup_integration()
-
-    await hass.services.async_call(
-        CLIMATE_DOMAIN,
-        SERVICE_SET_SWING_MODE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_SWING_MODE: swing_mode},
-        blocking=True,
-    )
+    await AirConEntity(mock_aircon).async_set_swing_mode(swing_mode)
 
     mock_aircon.set_h_louver_swing.assert_awaited_once_with(expected)
 
 
-@pytest.mark.parametrize(
-    ("service", "expected"), [(SERVICE_TURN_ON, True), (SERVICE_TURN_OFF, False)]
-)
-async def test_turn_on_off(
-    hass: HomeAssistant,
-    setup_integration: Callable,
-    mock_aircon: MagicMock,
-    service: str,
-    expected: bool,
-) -> None:
+async def test_turn_on_off(mock_aircon: MagicMock) -> None:
     """Test the turn on and turn off actions."""
-    await setup_integration()
+    entity = AirConEntity(mock_aircon)
 
-    await hass.services.async_call(
-        CLIMATE_DOMAIN, service, {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True
-    )
+    await entity.async_turn_on()
+    mock_aircon.set_power_on.assert_awaited_once_with(True)
 
-    mock_aircon.set_power_on.assert_awaited_once_with(expected)
+    mock_aircon.set_power_on.reset_mock()
+    await entity.async_turn_off()
+    mock_aircon.set_power_on.assert_awaited_once_with(False)
 
 
+@pytest.mark.parametrize(
+    ("method", "args", "setter"),
+    [
+        ("async_set_temperature", {ATTR_TEMPERATURE: 25}, "set_temp"),
+        ("async_set_humidity", {"humidity": 55}, "set_humidity"),
+        ("async_set_hvac_mode", {"hvac_mode": HVACMode.COOL}, "set_mode"),
+        ("async_set_hvac_mode", {"hvac_mode": HVACMode.OFF}, "set_power_on"),
+        ("async_set_fan_mode", {"fan_mode": FAN_HIGH}, "set_fanspeed"),
+        ("async_set_swing_mode", {"swing_mode": SWING_OFF}, "set_h_louver_swing"),
+        ("async_turn_on", {}, "set_power_on"),
+        ("async_turn_off", {}, "set_power_on"),
+    ],
+)
 async def test_request_failed(
-    hass: HomeAssistant, setup_integration: Callable, mock_aircon: MagicMock
+    mock_aircon: MagicMock, method: str, args: dict, setter: str
 ) -> None:
-    """Test a rejected command is reported to the user."""
-    await setup_integration()
-    mock_aircon.set_temp.return_value = False
+    """Test a rejected command raises an error for the user."""
+    getattr(mock_aircon, setter).return_value = False
 
-    with pytest.raises(HomeAssistantError, match="Request failed"):
-        await hass.services.async_call(
-            CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
-            {ATTR_ENTITY_ID: ENTITY_ID, ATTR_TEMPERATURE: 25},
-            blocking=True,
-        )
+    with pytest.raises(HomeAssistantError):
+        await getattr(AirConEntity(mock_aircon), method)(**args)
+
+
+async def test_turn_on_failed_after_mode_change(mock_aircon: MagicMock) -> None:
+    """Test a failed power-on after a mode change is reported."""
+    mock_aircon.get_power_on.return_value = False
+    mock_aircon.set_power_on.return_value = False
+
+    with pytest.raises(HomeAssistantError):
+        await AirConEntity(mock_aircon).async_set_hvac_mode(HVACMode.HEAT)
+    mock_aircon.set_mode.assert_awaited_once_with(Mode.Heat)

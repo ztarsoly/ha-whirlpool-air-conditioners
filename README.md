@@ -136,13 +136,15 @@ When reporting a problem, attach the logs and the diagnostics download to an
 
 ## Development
 
-The tests use
-[pytest-homeassistant-custom-component](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component)
-and mock the Whirlpool cloud, so they need no account or appliance.
+The tests are unit tests written with pytest, pytest-asyncio and pytest-cov.
+They call the integration's entities, setup and config flow directly, with
+Home Assistant and the Whirlpool cloud mocked, so they need no account or
+appliance. Each run prints a coverage report.
 
-Home Assistant only runs on Linux and macOS, so on Windows run the tests
-inside WSL. You need the Python version your Home Assistant release requires
-(3.14 at the time of writing).
+You need the Python version your Home Assistant release requires (3.14 at the
+time of writing). Run the commands from the repository root.
+
+Linux and macOS:
 
 ```bash
 python3 -m venv .venv
@@ -150,6 +152,20 @@ python3 -m venv .venv
 .venv/bin/python -m pytest
 .venv/bin/python -m pylint custom_components tests
 ```
+
+Windows (PowerShell or Command Prompt):
+
+```bash
+py -3.14 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements_test.txt
+.venv\Scripts\python -m pytest
+.venv\Scripts\python -m pylint custom_components tests
+```
+
+Home Assistant itself doesn't run on Windows, but these tests only import
+the parts the integration uses, so they work there too. If installing fails
+with "file name too long", move the repository to a shorter path or turn on
+Windows long path support.
 
 GitHub Actions runs pylint and the tests on every push to `main` and on pull
 requests.
