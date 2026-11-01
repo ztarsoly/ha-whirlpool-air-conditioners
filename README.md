@@ -6,6 +6,24 @@ KitchenAid and Consul apps, in the EU and US regions.
 
 The cloud pushes changes to Home Assistant as they happen, so there's no polling.
 
+## Supported devices
+
+These air conditioners are confirmed to work with the original Home Assistant
+Whirlpool integration this one is based on. Other models may work too.
+
+- Whirlpool SPIW309A2WF
+- Whirlpool SPIW312A2WF
+- Whirlpool SPIW409A2WF
+
+If yours works (or doesn't), please say so in an
+[issue](https://github.com/ztarsoly/ha-whirlpool-air-conditioners/issues).
+
+## Prerequisites
+
+- An account for the Whirlpool app, or for the Maytag, KitchenAid or Consul app.
+- Your air conditioners added to that account in the manufacturer's mobile app.
+  The integration only sees appliances registered there.
+
 ## Features
 
 Each air conditioner on your account becomes a device with these entities.
@@ -21,6 +39,7 @@ Each air conditioner on your account becomes a device with these entities.
 | Target humidity | Only on units that report a humidity setting |
 | Readings | Current temperature and current humidity |
 
+The thermostat card shows the current room temperature next to the target.
 Choosing a mode while the unit is off also turns it on.
 
 ### Switches
@@ -68,8 +87,9 @@ Choosing a mode while the unit is off also turns it on.
 2. Search for **Whirlpool Air Conditioners**.
 3. Enter:
    - **Username** and **Password**: the ones you use in the manufacturer's app.
-   - **Region**: where your appliances were purchased (EU or US).
-   - **Brand**: the brand of the app you use, or of your appliances.
+   - **Region**: the region your account is registered in (EU or US).
+   - **Brand**: the brand of the mobile app you use. This can differ from the
+     brand of your air conditioner.
 
 Setup fails with "No supported appliances found" if the account has no air
 conditioner.
@@ -77,7 +97,9 @@ conditioner.
 ## Removal
 
 1. Go to **Settings → Devices & services → Whirlpool Air Conditioners**.
-2. Open the menu on the account entry and choose **Delete**.
+2. Open the menu on the account entry and choose **Delete**, then confirm.
+   Home Assistant also deletes the entry's devices and entities. No other
+   cleanup is needed.
 3. To uninstall the code, remove the integration in HACS, or delete the
    `custom_components/whirlpool_air_conditioners` folder, then restart.
 
@@ -134,8 +156,9 @@ requests.
 
 ## Credits
 
-Based on the [Whirlpool integration](https://www.home-assistant.io/integrations/whirlpool)
-in Home Assistant core, by [@abmantis](https://github.com/abmantis) and
+Based on the [Whirlpool Appliances integration](https://www.home-assistant.io/integrations/whirlpool/)
+in Home Assistant core (see its documentation for washers, dryers, ovens and
+refrigerators), by [@abmantis](https://github.com/abmantis) and
 [@mkmer](https://github.com/mkmer). Uses the
 [whirlpool-sixth-sense](https://pypi.org/project/whirlpool-sixth-sense/) library.
 

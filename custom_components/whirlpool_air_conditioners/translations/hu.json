@@ -24,7 +24,7 @@
         "data_description": {
           "brand": "A használt mobilalkalmazás márkája, vagy a fiókjában lévő készülékek márkája",
           "password": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt jelszó",
-          "region": "A régió, ahol a készülékeket vásárolta"
+          "region": "A régió, amelyben a fiókja regisztrálva van"
         },
         "title": "Integráció újrahitelesítése"
       },
@@ -38,7 +38,7 @@
         "data_description": {
           "brand": "A használt mobilalkalmazás márkája, vagy a fiókjában lévő készülékek márkája",
           "password": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt jelszó",
-          "region": "A régió, ahol a készülékeket vásárolta",
+          "region": "A régió, amelyben a fiókja regisztrálva van",
           "username": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt felhasználónév vagy e-mail-cím"
         },
         "title": "Whirlpool-fiók beállítása"

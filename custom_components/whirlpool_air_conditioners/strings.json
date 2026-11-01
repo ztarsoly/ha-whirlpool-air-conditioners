@@ -24,7 +24,7 @@
         "data_description": {
           "brand": "The brand of the mobile app you use, or the brand of the appliances in your account",
           "password": "The password you use to log in to the Whirlpool/Maytag app",
-          "region": "The region where your appliances where purchased"
+          "region": "The region your account is registered in"
         },
         "title": "Reauthenticate integration"
       },
@@ -38,7 +38,7 @@
         "data_description": {
           "brand": "The brand of the mobile app you use, or the brand of the appliances in your account",
           "password": "The password you use to log in to the Whirlpool/Maytag app",
-          "region": "The region where your appliances where purchased",
+          "region": "The region your account is registered in",
           "username": "The username or email address you use to log in to the Whirlpool/Maytag app"
         },
         "title": "Configure your Whirlpool account"
