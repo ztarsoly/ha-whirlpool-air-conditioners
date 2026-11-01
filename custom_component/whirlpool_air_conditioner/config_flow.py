@@ -1,4 +1,4 @@
-"""Config flow for Whirlpool Appliances integration."""
+"""Config flow for Whirlpool Air Conditioner integration."""
 
 from collections.abc import Mapping
 import logging
@@ -75,20 +75,20 @@ async def authenticate(
 
 
 class WhirlpoolConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Whirlpool Sixth Sense."""
+    """Handle a config flow for Whirlpool Air Conditioner."""
 
     VERSION = 1
 
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
-        """Handle re-authentication with Whirlpool Sixth Sense."""
+        """Handle re-authentication with Whirlpool Air Conditioner."""
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Confirm re-authentication with Whirlpool Sixth Sense."""
+        """Confirm re-authentication with Whirlpool Air Conditioner."""
         errors: dict[str, str] = {}
 
         if user_input:

@@ -1,4 +1,4 @@
-"""Switch platform for the Whirlpool Appliances integration."""
+"""Switch platform for the Whirlpool Air Conditioner integration."""
 
 from typing import Any, override
 

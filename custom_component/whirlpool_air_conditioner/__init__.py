@@ -1,4 +1,4 @@
-"""The Whirlpool Appliances integration."""
+"""The Whirlpool Air Conditioner integration."""
 
 import logging
 
@@ -28,7 +28,7 @@ type WhirlpoolConfigEntry = ConfigEntry[AppliancesManager]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: WhirlpoolConfigEntry) -> bool:
-    """Set up Whirlpool Sixth Sense from a config entry."""
+    """Set up Whirlpool Air Conditioner from a config entry."""
     session = async_get_clientsession(hass)
     region = REGIONS_CONF_MAP[entry.data.get(CONF_REGION, "EU")]
     brand = BRANDS_CONF_MAP[entry.data.get(CONF_BRAND, "Whirlpool")]

@@ -1,8 +1,8 @@
-"""Constants for the Whirlpool Appliances integration."""
+"""Constants for the Whirlpool Air Conditioner integration."""
 
 from whirlpool.backendselector import Brand, Region
 
-DOMAIN = "my_whirlpool"
+DOMAIN = "whirlpool_air_conditioner"
 CONF_BRAND = "brand"
 
 REGIONS_CONF_MAP = {
