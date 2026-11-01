@@ -46,6 +46,23 @@
     }
   },
   "entity": {
+    "button": {
+      "wifi_reboot": {
+        "name": "Restart Wi-Fi module"
+      }
+    },
+    "select": {
+      "sleep_mode": {
+        "name": "Sleep mode",
+        "state": {
+          "off": "Off",
+          "adults": "Adults",
+          "elderly": "Elderly",
+          "teens": "Teens",
+          "children": "Children"
+        }
+      }
+    },
     "switch": {
       "display": {
         "name": "Display"

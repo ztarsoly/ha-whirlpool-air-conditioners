@@ -46,6 +46,23 @@
     }
   },
   "entity": {
+    "button": {
+      "wifi_reboot": {
+        "name": "Wi-Fi modul újraindítása"
+      }
+    },
+    "select": {
+      "sleep_mode": {
+        "name": "Alvó mód",
+        "state": {
+          "off": "Ki",
+          "adults": "Felnőttek",
+          "elderly": "Idősek",
+          "teens": "Tinédzserek",
+          "children": "Gyerekek"
+        }
+      }
+    },
     "switch": {
       "display": {
         "name": "Kijelző"

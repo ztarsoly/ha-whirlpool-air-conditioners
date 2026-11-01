@@ -18,7 +18,9 @@ from .const import BRANDS_CONF_MAP, CONF_BRAND, DOMAIN, REGIONS_CONF_MAP
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [
+    Platform.BUTTON,
     Platform.CLIMATE,
+    Platform.SELECT,
     Platform.SWITCH,
 ]
 

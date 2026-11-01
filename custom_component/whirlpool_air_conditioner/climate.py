@@ -2,7 +2,12 @@
 
 from typing import Any, override
 
-from whirlpool.aircon import Aircon, FanSpeed as AirconFanSpeed, Mode as AirconMode
+from whirlpool.aircon import (
+    SETTING_HUMIDITY,
+    Aircon,
+    FanSpeed as AirconFanSpeed,
+    Mode as AirconMode,
+)
 
 from homeassistant.components.climate import (
     FAN_AUTO,
@@ -31,7 +36,10 @@ AIRCON_MODE_MAP = {
     AirconMode.Fan: HVACMode.FAN_ONLY,
 }
 
-HVAC_MODE_TO_AIRCON_MODE = {v: k for k, v in AIRCON_MODE_MAP.items()}
+HVAC_MODE_TO_AIRCON_MODE = {
+    **{v: k for k, v in AIRCON_MODE_MAP.items()},
+    HVACMode.AUTO: AirconMode.SixthSense,
+}
 
 AIRCON_FANSPEED_MAP = {
     AirconFanSpeed.Off: FAN_OFF,
@@ -80,6 +88,12 @@ class AirConEntity(WhirlpoolEntity, ClimateEntity):
     _attr_target_temperature_step = SUPPORTED_TARGET_TEMPERATURE_STEP
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
 
+    def __init__(self, appliance: Aircon) -> None:
+        """Initialize the air conditioner."""
+        super().__init__(appliance)
+        if appliance.has_attribute(SETTING_HUMIDITY):
+            self._attr_supported_features |= ClimateEntityFeature.TARGET_HUMIDITY
+
     @property
     @override
     def current_temperature(self) -> float:
@@ -107,10 +121,28 @@ class AirConEntity(WhirlpoolEntity, ClimateEntity):
 
     @property
     @override
+    def target_humidity(self) -> int | None:
+        """Return the humidity we try to reach."""
+        return self._appliance.get_humidity()
+
+    @override
+    async def async_set_humidity(self, humidity: int) -> None:
+        """Set new target humidity."""
+        AirConEntity._check_service_request(
+            await self._appliance.set_humidity(humidity)
+        )
+
+    @property
+    @override
     def hvac_mode(self) -> HVACMode | None:
         """Return current operation ie. heat, cool, fan."""
         if not self._appliance.get_power_on():
             return HVACMode.OFF
+
+        # In 6th Sense mode get_mode() reports the cool/heat/fan step the unit
+        # picked by itself, so check the selected mode first.
+        if self._appliance.get_sixthsense_mode():
+            return HVACMode.AUTO
 
         mode: AirconMode = self._appliance.get_mode()
         return AIRCON_MODE_MAP.get(mode)
