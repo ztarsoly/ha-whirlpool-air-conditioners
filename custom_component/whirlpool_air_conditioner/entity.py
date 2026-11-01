@@ -4,7 +4,6 @@ import logging
 from typing import override
 
 from whirlpool.appliance import Appliance
-from whirlpool.oven import Cavity as OvenCavity, Oven
 
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
@@ -68,33 +67,3 @@ class WhirlpoolEntity(Entity):
                 translation_domain=DOMAIN,
                 translation_key="request_failed",
             )
-
-
-class WhirlpoolOvenEntity(WhirlpoolEntity):
-    """Base class for Whirlpool oven entities."""
-
-    _appliance: Oven
-
-    @staticmethod
-    def cavity_suffix(oven: Oven, cavity: OvenCavity) -> str:
-        """Return the unique-id and translation-key suffix for an oven cavity."""
-        if oven.get_oven_cavity_exists(
-            OvenCavity.Upper
-        ) and oven.get_oven_cavity_exists(OvenCavity.Lower):
-            return "_upper" if cavity == OvenCavity.Upper else "_lower"
-        return ""
-
-    def __init__(
-        self,
-        appliance: Oven,
-        cavity: OvenCavity,
-        translation_key_base: str | None,
-        unique_id_suffix: str = "",
-    ) -> None:
-        """Initialize the entity."""
-        self.cavity = cavity
-        cavity_suffix = self.cavity_suffix(appliance, cavity)
-        super().__init__(
-            appliance, unique_id_suffix=f"{unique_id_suffix}{cavity_suffix}"
-        )
-        self._attr_translation_key = f"{translation_key_base}{cavity_suffix}"

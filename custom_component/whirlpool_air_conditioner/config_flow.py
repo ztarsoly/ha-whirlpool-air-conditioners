@@ -68,13 +68,7 @@ async def authenticate(
         appliances_manager = AppliancesManager(backend_selector, auth, session)
         await appliances_manager.fetch_appliances()
 
-        if (
-            not appliances_manager.aircons
-            and not appliances_manager.washers
-            and not appliances_manager.dryers
-            and not appliances_manager.ovens
-            and not appliances_manager.refrigerators
-        ):
+        if not appliances_manager.aircons:
             return "no_appliances"
 
     return None
