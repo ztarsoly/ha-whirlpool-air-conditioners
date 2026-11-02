@@ -167,8 +167,15 @@ the parts the integration uses, so they work there too. If installing fails
 with "file name too long", move the repository to a shorter path or turn on
 Windows long path support.
 
-GitHub Actions runs pylint and the tests on every push to `main` and on pull
-requests.
+The test dependencies in `requirements_test.txt` are pinned to exact versions,
+so CI only changes when you update them. Coverage must stay at 100%, or the
+test run fails.
+
+On every push to `main` and on pull requests, GitHub Actions runs:
+
+- **Tests**: pylint and the tests. The tests still run when pylint fails.
+- **Validate with hassfest**: Home Assistant's validator for `manifest.json`,
+  translations and file layout.
 
 ## Credits
 

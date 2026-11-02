@@ -1,0 +1,20 @@
+name: Validate with hassfest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Home Assistant's validator for manifest.json, translations and file
+      # layout. It always runs the latest hassfest image.
+      - uses: home-assistant/actions/hassfest@master
