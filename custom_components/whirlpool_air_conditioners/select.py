@@ -2,14 +2,14 @@
 
 from typing import Final, override
 
-from whirlpool.aircon import (
+from whirlpool.httpapi.aircon import (
     SETTING_SLEEP_MODE,
     SETVAL_SLEEP_MODE_ADULTS,
     SETVAL_SLEEP_MODE_CHILDREN,
     SETVAL_SLEEP_MODE_ELDERLY,
     SETVAL_SLEEP_MODE_OFF,
     SETVAL_SLEEP_MODE_TEENS,
-    Aircon,
+    Aircon as HttpAircon,
 )
 
 from homeassistant.components.select import SelectEntity
@@ -38,22 +38,23 @@ async def async_setup_entry(
 ) -> None:
     """Set up the select platform."""
     appliances_manager = config_entry.runtime_data
+    # Sleep mode is a raw setting that only units on the HTTP API expose.
     async_add_entities(
         WhirlpoolSleepModeSelect(aircon)
         for aircon in appliances_manager.aircons
-        if aircon.has_attribute(SETTING_SLEEP_MODE)
+        if isinstance(aircon, HttpAircon) and aircon.has_attribute(SETTING_SLEEP_MODE)
     )
 
 
 class WhirlpoolSleepModeSelect(WhirlpoolEntity, SelectEntity):
     """Sleep mode of an air conditioner."""
 
-    _appliance: Aircon
+    _appliance: HttpAircon
 
     _attr_options = list(SLEEP_MODES.values())
     _attr_translation_key = "sleep_mode"
 
-    def __init__(self, appliance: Aircon) -> None:
+    def __init__(self, appliance: HttpAircon) -> None:
         """Initialize the sleep mode select."""
         super().__init__(appliance, unique_id_suffix="-sleep_mode")
 

@@ -3,7 +3,8 @@
 from unittest.mock import MagicMock
 
 import pytest
-from whirlpool.aircon import SETTING_HUMIDITY, Aircon, FanSpeed, Mode
+from whirlpool.aircon import FanSpeed, Mode
+from whirlpool.httpapi.aircon import SETTING_HUMIDITY
 
 from homeassistant.components.climate import (
     FAN_AUTO,
@@ -25,17 +26,14 @@ from custom_components.whirlpool_air_conditioners.climate import AirConEntity
 from .conftest import MOCK_SAID, setup_platform
 
 
-async def test_setup_entry(mock_aircon: MagicMock) -> None:
-    """Test one climate entity is added per air conditioner."""
-    other_aircon = MagicMock(spec=Aircon)
-    other_aircon.said = "OTHER_SAID"
-    other_aircon.name = "bedroom"
-    other_aircon.appliance_info = MagicMock()
-
-    entities = await setup_platform(climate, [mock_aircon, other_aircon])
+async def test_setup_entry(
+    mock_aircon: MagicMock, mock_aws_aircon: MagicMock
+) -> None:
+    """Test one climate entity is added per air conditioner, on either API."""
+    entities = await setup_platform(climate, [mock_aircon, mock_aws_aircon])
 
     assert [type(entity) for entity in entities] == [AirConEntity, AirConEntity]
-    assert [entity.unique_id for entity in entities] == [MOCK_SAID, "OTHER_SAID"]
+    assert [entity.unique_id for entity in entities] == [MOCK_SAID, "AWS_SAID"]
 
 
 def test_attributes(mock_aircon: MagicMock) -> None:
@@ -80,6 +78,18 @@ def test_supported_features(mock_aircon: MagicMock) -> None:
         assert feature in without_humidity
     assert ClimateEntityFeature.TARGET_HUMIDITY not in without_humidity
     assert with_humidity == without_humidity | ClimateEntityFeature.TARGET_HUMIDITY
+
+
+def test_supported_features_aws(
+    mock_aircon: MagicMock, mock_aws_aircon: MagicMock
+) -> None:
+    """Test AWS IoT units get the base features but no target humidity."""
+    mock_aircon.has_attribute.side_effect = lambda attr: attr != SETTING_HUMIDITY
+
+    assert (
+        AirConEntity(mock_aws_aircon).supported_features
+        == AirConEntity(mock_aircon).supported_features
+    )
 
 
 @pytest.mark.parametrize(

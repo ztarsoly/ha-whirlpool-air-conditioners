@@ -4,12 +4,12 @@ from types import ModuleType
 from unittest.mock import MagicMock
 
 import pytest
-from whirlpool.aircon import (
+from whirlpool.aircon import FanSpeed, Mode
+from whirlpool.awsiot.aircon import Aircon as AwsAircon
+from whirlpool.httpapi.aircon import (
     SETTING_SLEEP_MODE,
     SETVAL_SLEEP_MODE_OFF,
-    Aircon,
-    FanSpeed,
-    Mode,
+    Aircon as HttpAircon,
 )
 from whirlpool.types import ApplianceInfo
 
@@ -34,14 +34,13 @@ INTEGRATION = "custom_components.whirlpool_air_conditioners"
 
 @pytest.fixture
 def mock_aircon() -> MagicMock:
-    """Return a mocked air conditioner that is on, in cool mode."""
-    aircon = MagicMock(spec=Aircon)
+    """Return a mocked HTTP API air conditioner that is on, in cool mode."""
+    aircon = MagicMock(spec=HttpAircon)
     aircon.said = MOCK_SAID
     aircon.name = MOCK_NAME
     aircon.appliance_info = ApplianceInfo(
         said=MOCK_SAID,
         name=MOCK_NAME,
-        data_model="DDM_AIRCONDITIONER_V1",
         category="AirConditioner",
         model_number="SPIW309A2WF",
         serial_number="SN12345",
@@ -82,6 +81,26 @@ def mock_aircon() -> MagicMock:
     ):
         getattr(aircon, setter).return_value = True
 
+    return aircon
+
+
+@pytest.fixture
+def mock_aws_aircon() -> MagicMock:
+    """Return a mocked AWS IoT air conditioner.
+
+    These units don't expose the HTTP API's raw settings (has_attribute,
+    send_attributes), so features built on them must skip such units.
+    """
+    aircon = MagicMock(spec=AwsAircon)
+    aircon.said = "AWS_SAID"
+    aircon.name = "bedroom"
+    aircon.appliance_info = ApplianceInfo(
+        said="AWS_SAID",
+        name="bedroom",
+        category="AirConditioner",
+        model_number="AWS_MODEL",
+        serial_number="SN67890",
+    )
     return aircon
 
 

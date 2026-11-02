@@ -55,8 +55,7 @@ def mock_auth() -> Generator[MagicMock]:
 def mock_manager() -> Generator[MagicMock]:
     """Mock the appliances manager."""
     manager = MagicMock()
-    manager.fetch_appliances = AsyncMock(return_value=True)
-    manager.connect = AsyncMock()
+    manager.connect = AsyncMock(return_value=True)
     manager.disconnect = AsyncMock()
     with patch(f"{INTEGRATION}.AppliancesManager", return_value=manager):
         yield manager
@@ -147,15 +146,14 @@ async def test_setup_auth_errors(
 
 
 @pytest.mark.usefixtures("mock_auth")
-async def test_setup_fetch_appliances_failed(
+async def test_setup_connect_failed(
     hass: MagicMock, config_entry: MagicMock, mock_manager: MagicMock
 ) -> None:
     """Test setup is retried when the appliance list can't be fetched."""
-    mock_manager.fetch_appliances.return_value = False
+    mock_manager.connect.return_value = False
 
     with pytest.raises(ConfigEntryNotReady) as err:
         await async_setup_entry(hass, config_entry)
 
     assert err.value.translation_key == "appliances_fetch_failed"
-    mock_manager.connect.assert_not_awaited()
     hass.config_entries.async_forward_entry_setups.assert_not_awaited()

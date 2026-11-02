@@ -2,7 +2,7 @@
 
 from typing import override
 
-from whirlpool.aircon import SETTING_REBOOT_WIFI, Aircon
+from whirlpool.httpapi.aircon import SETTING_REBOOT_WIFI, Aircon as HttpAircon
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.const import EntityCategory
@@ -22,23 +22,24 @@ async def async_setup_entry(
 ) -> None:
     """Set up the button platform."""
     appliances_manager = config_entry.runtime_data
+    # The reboot command is a raw setting that only units on the HTTP API expose.
     async_add_entities(
         WhirlpoolWifiRebootButton(aircon)
         for aircon in appliances_manager.aircons
-        if aircon.has_attribute(SETTING_REBOOT_WIFI)
+        if isinstance(aircon, HttpAircon) and aircon.has_attribute(SETTING_REBOOT_WIFI)
     )
 
 
 class WhirlpoolWifiRebootButton(WhirlpoolEntity, ButtonEntity):
     """Button to restart the Wi-Fi module of an air conditioner."""
 
-    _appliance: Aircon
+    _appliance: HttpAircon
 
     _attr_device_class = ButtonDeviceClass.RESTART
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "wifi_reboot"
 
-    def __init__(self, appliance: Aircon) -> None:
+    def __init__(self, appliance: HttpAircon) -> None:
         """Initialize the Wi-Fi reboot button."""
         super().__init__(appliance, unique_id_suffix="-wifi_reboot")
 

@@ -45,7 +45,8 @@ def mock_auth() -> Generator[MagicMock]:
 def mock_manager(mock_aircon: MagicMock) -> Generator[MagicMock]:
     """Mock the appliances manager, owning one air conditioner."""
     manager = MagicMock()
-    manager.fetch_appliances = AsyncMock(return_value=True)
+    manager.connect = AsyncMock(return_value=True)
+    manager.disconnect = AsyncMock()
     manager.aircons = [mock_aircon]
     with patch(f"{FLOW}.AppliancesManager", return_value=manager):
         yield manager
@@ -65,10 +66,27 @@ def make_flow(source: str, existing_entry: MagicMock | None = None) -> Whirlpool
     return flow
 
 
-@pytest.mark.usefixtures("mock_auth", "mock_manager")
-async def test_authenticate_success(hass_mock: MagicMock) -> None:
+@pytest.mark.usefixtures("mock_auth")
+async def test_authenticate_success(
+    hass_mock: MagicMock, mock_manager: MagicMock
+) -> None:
     """Test a valid login with an air conditioner returns no error."""
     assert await authenticate(hass_mock, MOCK_USER_INPUT, True) is None
+
+    # The check only lists the appliances; it must not stay connected.
+    mock_manager.connect.assert_awaited_once()
+    mock_manager.disconnect.assert_awaited_once()
+
+
+@pytest.mark.usefixtures("mock_auth")
+async def test_authenticate_connect_failed(
+    hass_mock: MagicMock, mock_manager: MagicMock
+) -> None:
+    """Test a failure to load the appliance list is a connection error."""
+    mock_manager.connect.return_value = False
+
+    assert await authenticate(hass_mock, MOCK_USER_INPUT, True) == "cannot_connect"
+    mock_manager.disconnect.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
@@ -113,7 +131,7 @@ async def test_authenticate_skips_appliance_check(
     """Test re-authentication doesn't fetch the appliance list."""
     assert await authenticate(hass_mock, MOCK_USER_INPUT, False) is None
 
-    mock_manager.fetch_appliances.assert_not_awaited()
+    mock_manager.connect.assert_not_awaited()
 
 
 async def test_user_step_shows_form() -> None:

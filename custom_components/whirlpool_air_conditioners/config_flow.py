@@ -37,7 +37,8 @@ REAUTH_SCHEMA = vol.Schema(
 )
 
 
-async def authenticate(
+# Each return maps one failure to the error shown on the setup screen.
+async def authenticate(  # pylint: disable=too-many-return-statements
     hass: HomeAssistant, data: dict[str, str], check_appliances_exist: bool
 ) -> str | None:
     """Authenticate with the api.
@@ -66,7 +67,9 @@ async def authenticate(
 
     if check_appliances_exist:
         appliances_manager = AppliancesManager(backend_selector, auth, session)
-        await appliances_manager.fetch_appliances()
+        if not await appliances_manager.connect():
+            return "cannot_connect"
+        await appliances_manager.disconnect()
 
         if not appliances_manager.aircons:
             return "no_appliances"

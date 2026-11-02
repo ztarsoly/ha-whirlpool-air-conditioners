@@ -32,7 +32,6 @@ async def test_diagnostics(mock_aircon: MagicMock) -> None:
     assert result["appliances"] == {
         "aircons": {
             MOCK_NAME: {
-                "data_model": "DDM_AIRCONDITIONER_V1",
                 "category": "AirConditioner",
                 "model_number": "SPIW309A2WF",
             }

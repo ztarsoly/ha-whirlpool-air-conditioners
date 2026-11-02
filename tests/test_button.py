@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from whirlpool.aircon import SETTING_REBOOT_WIFI, Aircon
+from whirlpool.httpapi.aircon import SETTING_REBOOT_WIFI, Aircon as HttpAircon
 
 from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.const import EntityCategory
@@ -17,12 +17,16 @@ from custom_components.whirlpool_air_conditioners.button import (
 from .conftest import MOCK_SAID, setup_platform
 
 
-async def test_setup_entry(mock_aircon: MagicMock) -> None:
+async def test_setup_entry(
+    mock_aircon: MagicMock, mock_aws_aircon: MagicMock
+) -> None:
     """Test the reboot button is only added for units that support it."""
-    unsupported = MagicMock(spec=Aircon)
+    unsupported = MagicMock(spec=HttpAircon)
     unsupported.has_attribute.side_effect = lambda attr: attr != SETTING_REBOOT_WIFI
 
-    entities = await setup_platform(button, [mock_aircon, unsupported])
+    entities = await setup_platform(
+        button, [mock_aircon, unsupported, mock_aws_aircon]
+    )
 
     assert len(entities) == 1
     entity = entities[0]

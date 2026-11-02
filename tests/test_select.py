@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from whirlpool.aircon import SETTING_SLEEP_MODE, Aircon
+from whirlpool.httpapi.aircon import SETTING_SLEEP_MODE, Aircon as HttpAircon
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -15,12 +15,16 @@ from custom_components.whirlpool_air_conditioners.select import (
 from .conftest import MOCK_SAID, setup_platform
 
 
-async def test_setup_entry(mock_aircon: MagicMock) -> None:
+async def test_setup_entry(
+    mock_aircon: MagicMock, mock_aws_aircon: MagicMock
+) -> None:
     """Test the sleep mode select is only added for units that support it."""
-    unsupported = MagicMock(spec=Aircon)
+    unsupported = MagicMock(spec=HttpAircon)
     unsupported.has_attribute.side_effect = lambda attr: attr != SETTING_SLEEP_MODE
 
-    entities = await setup_platform(select, [mock_aircon, unsupported])
+    entities = await setup_platform(
+        select, [mock_aircon, unsupported, mock_aws_aircon]
+    )
 
     assert len(entities) == 1
     assert entities[0].unique_id == f"{MOCK_SAID}-sleep_mode"

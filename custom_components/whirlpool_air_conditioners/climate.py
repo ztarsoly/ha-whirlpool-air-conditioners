@@ -2,12 +2,8 @@
 
 from typing import Any, override
 
-from whirlpool.aircon import (
-    SETTING_HUMIDITY,
-    Aircon,
-    FanSpeed as AirconFanSpeed,
-    Mode as AirconMode,
-)
+from whirlpool.aircon import Aircon, FanSpeed as AirconFanSpeed, Mode as AirconMode
+from whirlpool.httpapi.aircon import SETTING_HUMIDITY, Aircon as HttpAircon
 
 from homeassistant.components.climate import (
     FAN_AUTO,
@@ -91,7 +87,10 @@ class AirConEntity(WhirlpoolEntity, ClimateEntity):
     def __init__(self, appliance: Aircon) -> None:
         """Initialize the air conditioner."""
         super().__init__(appliance)
-        if appliance.has_attribute(SETTING_HUMIDITY):
+        # Only units on the HTTP API report which settings they support.
+        if isinstance(appliance, HttpAircon) and appliance.has_attribute(
+            SETTING_HUMIDITY
+        ):
             self._attr_supported_features |= ClimateEntityFeature.TARGET_HUMIDITY
 
     @property
