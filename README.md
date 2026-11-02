@@ -174,7 +174,7 @@ test run fails.
 On every push to `main` and on pull requests, GitHub Actions runs:
 
 - **Tests**: pylint and the tests. The tests still run when pylint fails.
-- **Validate with hassfest**: Home Assistant's validator for `manifest.json`,
+- **Validate**: hassfest, Home Assistant's validator for `manifest.json`,
   translations and file layout.
 
 ## Credits
