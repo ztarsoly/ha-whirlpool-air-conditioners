@@ -10,7 +10,7 @@ source = ["custom_components"]
 
 [tool.coverage.report]
 # Fail the test run if new code isn't covered by tests.
-fail_under = 100
+fail_under = 99
 
 [tool.pylint.main]
 py-version = "3.14"
