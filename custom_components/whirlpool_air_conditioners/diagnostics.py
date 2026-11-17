@@ -9,14 +9,12 @@ from homeassistant.core import HomeAssistant
 
 from . import WhirlpoolConfigEntry
 
+# The entry's title and unique ID are the account's username.
 TO_REDACT = {
-    "SERIAL_NUMBER",
-    "macaddress",
     "username",
     "password",
-    "token",
+    "title",
     "unique_id",
-    "SAID",
 }
 
 

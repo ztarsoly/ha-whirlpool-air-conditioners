@@ -1,7 +1,4 @@
 {
-  "common": {
-    "account_locked_error": "A fiók zárolva van. A feloldáshoz kövesse a gyártó alkalmazásában található utasításokat"
-  },
   "config": {
     "abort": {
       "already_configured": "A fiók már be van állítva",
@@ -18,13 +15,11 @@
       "reauth_confirm": {
         "data": {
           "brand": "Márka",
-          "password": "Jelszó",
-          "region": "Régió"
+          "password": "Jelszó"
         },
         "data_description": {
           "brand": "A használt mobilalkalmazás márkája, vagy a fiókjában lévő készülékek márkája",
-          "password": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt jelszó",
-          "region": "A régió, amelyben a fiókja regisztrálva van"
+          "password": "A Whirlpool/Maytag alkalmazásba való bejelentkezéshez használt jelszó"
         },
         "title": "Integráció újrahitelesítése"
       },

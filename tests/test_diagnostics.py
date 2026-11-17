@@ -23,6 +23,7 @@ async def test_diagnostics(mock_aircon: MagicMock) -> None:
 
     result = await async_get_config_entry_diagnostics(MagicMock(), config_entry)
 
+    assert result["config_entry"]["title"] == REDACTED
     assert result["config_entry"]["unique_id"] == REDACTED
     assert result["config_entry"]["data"] == {
         **MOCK_USER_INPUT,

@@ -109,7 +109,6 @@ class WhirlpoolConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=REAUTH_SCHEMA,
             errors=errors,
-            description_placeholders={"name": "Whirlpool"},
         )
 
     @override
