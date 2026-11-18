@@ -187,3 +187,10 @@ refrigerators), by [@abmantis](https://github.com/abmantis) and
 
 This project isn't affiliated with or endorsed by Whirlpool Corporation.
 Whirlpool is a registered trademark of Whirlpool Corporation.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE), the same license as
+Home Assistant. Portions of the code come from the Home Assistant Whirlpool
+integration, copyright the Home Assistant authors, also under the Apache
+License 2.0. The files that came from it have been modified.
