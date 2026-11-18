@@ -1,0 +1,69 @@
+name: Release
+
+# Publishes a GitHub release (which HACS offers as an update) when a tag is
+# pushed. The tag must equal the version in manifest.json, e.g.:
+#   git tag 1.0.1 && git push origin 1.0.1
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions: {}
+
+jobs:
+  version:
+    name: "Check the version"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the tag matches the manifest version
+        run: |
+          VERSION=$(jq -r '.version' custom_components/whirlpool_air_conditioners/manifest.json)
+          if [ "$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match manifest.json version $VERSION"
+            exit 1
+          fi
+
+  # The same checks as on main: pylint, tests with coverage, hassfest, HACS
+  tests:
+    name: "Tests"
+    needs: version
+    uses: ./.github/workflows/tests.yml
+    permissions:
+      contents: read
+
+  validate:
+    name: "Validate"
+    needs: version
+    uses: ./.github/workflows/validate.yml
+    permissions: {}
+
+  release:
+    name: "Release"
+    needs: [tests, validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build the zip
+        run: |
+          cd custom_components
+          zip -r "../whirlpool_air_conditioners-$GITHUB_REF_NAME.zip" whirlpool_air_conditioners \
+            -x "*/__pycache__/*" "*.pyc"
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "whirlpool_air_conditioners-$GITHUB_REF_NAME.zip" \
+            --title "Whirlpool Air Conditioners $GITHUB_REF_NAME" \
+            --generate-notes
