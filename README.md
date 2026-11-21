@@ -67,19 +67,25 @@ Choosing a mode while the unit is off also turns it on.
 
 ## Installation
 
-### Manual
-
-1. Copy the `custom_components/whirlpool_air_conditioners` folder into the
-   `custom_components` folder of your Home Assistant configuration directory.
-   Create that folder if it doesn't exist.
-2. Restart Home Assistant.
-
 ### HACS
 
 1. In HACS, open the menu and choose **Custom repositories**.
 2. Add `https://github.com/ztarsoly/ha-whirlpool-air-conditioners` with the
    type **Integration**.
 3. Install **Whirlpool Air Conditioners** and restart Home Assistant.
+
+### Manual
+
+1. Download `whirlpool_air_conditioners-<version>.zip` from the
+   [latest release](https://github.com/ztarsoly/ha-whirlpool-air-conditioners/releases/latest).
+2. Extract it into the `custom_components` folder of your Home Assistant
+   configuration directory (the folder that has `configuration.yaml`). Create
+   `custom_components` if it doesn't exist. You should end up with
+   `custom_components/whirlpool_air_conditioners/manifest.json`.
+3. Restart Home Assistant.
+
+To update, delete the `custom_components/whirlpool_air_conditioners` folder,
+extract the new release's zip the same way, and restart.
 
 ## Setup
 
