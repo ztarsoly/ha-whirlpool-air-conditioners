@@ -167,15 +167,20 @@ the parts the integration uses, so they work there too. If installing fails
 with "file name too long", move the repository to a shorter path or turn on
 Windows long path support.
 
-The test dependencies in `requirements_test.txt` are pinned to exact versions,
-so CI only changes when you update them. Coverage must stay at 99% or higher, or the
-test run fails.
+The test dependencies in `requirements_test.txt` aren't pinned, so every run
+uses their latest versions, including the latest Home Assistant. Coverage must
+stay at 99% or higher, or the test run fails.
 
 On every push to `main` and on pull requests, GitHub Actions runs:
 
-- **Tests**: pylint and the tests. The tests still run when pylint fails.
+- **Tests**: pylint and the tests, on the Python version the current Home
+  Assistant release uses. The tests still run when pylint fails.
 - **Validate**: hassfest, Home Assistant's validator for `manifest.json`,
-  translations and file layout.
+  translations and file layout, and the HACS validation. It also runs daily.
+
+Pushing a tag that matches the `version` in `manifest.json` (for example
+`1.0.1`) runs **Release**: it runs both of the above, then publishes a GitHub
+release with a zip of the integration.
 
 ## Credits
 
